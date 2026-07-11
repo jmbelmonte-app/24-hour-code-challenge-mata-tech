@@ -14,7 +14,7 @@ public sealed class ImportsController(IPizzaSalesImportService importService) : 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ImportResult>> Import(
-        [FromForm] IFormFile? archive,
+        IFormFile? archive,
         [FromQuery] bool replaceExisting,
         CancellationToken cancellationToken)
     {

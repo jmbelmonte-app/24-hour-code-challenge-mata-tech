@@ -46,14 +46,21 @@ public sealed class SalesQueryService(PizzaSalesDbContext dbContext) : ISalesQue
     public async Task<IReadOnlyList<SalesTrendPointDto>> GetSalesTrendAsync(DateOnly? from, DateOnly? to, CancellationToken cancellationToken)
     {
         ValidateDateRange(from, to);
-        return await FilterLines(from, to, null, null, null)
+        var grouped = await FilterLines(from, to, null, null, null)
             .GroupBy(line => new { line.OrderDate.Year, line.OrderDate.Month })
             .OrderBy(group => group.Key.Year).ThenBy(group => group.Key.Month)
-            .Select(group => new SalesTrendPointDto(
-                $"{group.Key.Year:D4}-{group.Key.Month:D2}",
-                group.Sum(line => line.Quantity * line.UnitPriceCents) / 100m,
-                group.Select(line => line.OrderId).Distinct().Count()))
+            .Select(group => new
+            {
+                group.Key.Year,
+                group.Key.Month,
+                RevenueCents = group.Sum(line => line.Quantity * line.UnitPriceCents),
+                Orders = group.Select(line => line.OrderId).Distinct().Count()
+            })
             .ToListAsync(cancellationToken);
+
+        return grouped
+            .Select(group => new SalesTrendPointDto($"{group.Year:D4}-{group.Month:D2}", group.RevenueCents / 100m, group.Orders))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<TopPizzaDto>> GetTopPizzasAsync(DateOnly? from, DateOnly? to, int limit, CancellationToken cancellationToken)
@@ -64,17 +71,23 @@ public sealed class SalesQueryService(PizzaSalesDbContext dbContext) : ISalesQue
             throw new ArgumentException("limit must be between 1 and 20.");
         }
 
-        return await FilterLines(from, to, null, null, null)
+        var grouped = await FilterLines(from, to, null, null, null)
             .GroupBy(line => new { line.PizzaId, line.PizzaName, line.Category })
-            .Select(group => new TopPizzaDto(
+            .Select(group => new
+            {
                 group.Key.PizzaId,
                 group.Key.PizzaName,
                 group.Key.Category,
-                group.Sum(line => line.Quantity),
-                group.Sum(line => line.Quantity * line.UnitPriceCents) / 100m))
+                Quantity = group.Sum(line => line.Quantity),
+                RevenueCents = group.Sum(line => line.Quantity * line.UnitPriceCents)
+            })
             .OrderByDescending(item => item.Quantity).ThenBy(item => item.PizzaName)
             .Take(limit)
             .ToListAsync(cancellationToken);
+
+        return grouped
+            .Select(item => new TopPizzaDto(item.PizzaId, item.PizzaName, item.Category, item.Quantity, item.RevenueCents / 100m))
+            .ToList();
     }
 
     private IQueryable<SalesLine> FilterLines(DateOnly? from, DateOnly? to, string? search, string? category, string? size)
