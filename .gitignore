@@ -1,0 +1,24 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+dist/
+coverage/
+
+# Local state
+App_Data/
+*.db
+*.db-shm
+*.db-wal
+.env
+uploads/
+
+# Tooling
+node_modules/
+.angular/
+.vs/
+.idea/
+TestResults/
+
+# OS files
+.DS_Store
+Thumbs.db
