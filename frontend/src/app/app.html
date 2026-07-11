@@ -1,0 +1,55 @@
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Pizza Place · 2015 sales</p>
+      <h1>Sales dashboard</h1>
+      <p class="subtitle">Explore order-level performance, product demand, and revenue trends.</p>
+    </div>
+    <a href="http://localhost:5186/swagger" target="_blank" rel="noreferrer">Open API documentation ↗</a>
+  </header>
+
+  <section class="import-card" aria-label="Import sales archive">
+    <div>
+      <h2>Load the dataset</h2>
+      <p>Upload <code>pizza_place_sales_archive.zip</code> to populate the local SQLite database.</p>
+    </div>
+    <div class="import-controls">
+      <input type="file" accept=".zip,application/zip" (change)="selectArchive($event)" />
+      <button class="secondary" type="button" (click)="importArchive()" [disabled]="isImporting">
+        {{ isImporting ? 'Importing…' : 'Import ZIP' }}
+      </button>
+    </div>
+    @if (importMessage) { <p class="import-message">{{ importMessage }}</p> }
+  </section>
+
+  <section class="filters" aria-label="Sales filters">
+    <label>Search<input [(ngModel)]="filters.search" (keyup.enter)="refresh(true)" placeholder="Pizza name, ID, or category" /></label>
+    <label>From<input [(ngModel)]="filters.from" type="date" (change)="refresh(true)" /></label>
+    <label>To<input [(ngModel)]="filters.to" type="date" (change)="refresh(true)" /></label>
+    <label>Category<select [(ngModel)]="filters.category" (change)="refresh(true)"><option value="">All categories</option>@for (category of categories; track category) { <option [value]="category">{{ category }}</option> }</select></label>
+    <label>Size<select [(ngModel)]="filters.size" (change)="refresh(true)"><option value="">All sizes</option>@for (size of sizes; track size) { <option [value]="size">{{ size }}</option> }</select></label>
+    <button type="button" (click)="refresh(true)">Apply filters</button>
+  </section>
+
+  @if (errorMessage) { <section class="message error">{{ errorMessage }}</section> }
+
+  <section class="kpis" [class.muted]="isLoading">
+    <article><span>Revenue</span><strong>{{ summary.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</strong></article>
+    <article><span>Orders</span><strong>{{ summary.totalOrders | number }}</strong></article>
+    <article><span>Pizzas sold</span><strong>{{ summary.totalPizzasSold | number }}</strong></article>
+    <article><span>Average order</span><strong>{{ summary.averageOrderValue | currency:'USD':'symbol':'1.2-2' }}</strong></article>
+  </section>
+
+  <section class="charts">
+    <article><div class="chart-heading"><div><p class="eyebrow">Revenue</p><h2>Monthly sales trend</h2></div></div><div class="chart"><canvas #trendCanvas></canvas></div></article>
+    <article><div class="chart-heading"><div><p class="eyebrow">Volume</p><h2>Top pizzas</h2></div></div><div class="chart"><canvas #topPizzasCanvas></canvas></div></article>
+  </section>
+
+  <section class="table-card">
+    <div class="table-heading"><div><p class="eyebrow">Sales data</p><h2>Order lines</h2></div><span>{{ sales.totalCount | number }} matching records</span></div>
+    @if (sales.items.length > 0) {
+      <div class="table-wrap"><table><thead><tr><th (click)="changeSort('orderDate')">Date{{ sortIndicator('orderDate') }}</th><th (click)="changeSort('pizzaName')">Pizza{{ sortIndicator('pizzaName') }}</th><th>Category</th><th>Size</th><th (click)="changeSort('quantity')">Qty{{ sortIndicator('quantity') }}</th><th>Unit price</th><th (click)="changeSort('lineTotal')">Line total{{ sortIndicator('lineTotal') }}</th></tr></thead><tbody>@for (line of sales.items; track line.orderId + line.pizzaId + line.orderTime) { <tr><td><strong>{{ line.orderDate | date:'mediumDate' }}</strong><small>#{{ line.orderId }} · {{ line.orderTime }}</small></td><td><strong>{{ line.pizzaName }}</strong><small>{{ line.pizzaId }}</small></td><td><span class="tag">{{ line.category }}</span></td><td>{{ line.size }}</td><td>{{ line.quantity }}</td><td>{{ line.unitPrice | currency }}</td><td><strong>{{ line.lineTotal | currency }}</strong></td></tr> }</tbody></table></div>
+      <footer class="pagination"><button type="button" (click)="changePage(sales.page - 1)" [disabled]="sales.page === 1">Previous</button><span>Page {{ sales.page }} of {{ sales.totalPages }}</span><button type="button" (click)="changePage(sales.page + 1)" [disabled]="sales.page === sales.totalPages">Next</button></footer>
+    } @else if (!isLoading) { <div class="empty-state"><h3>No sales data to show</h3><p>Import the supplied archive, then narrow or clear the filters as needed.</p></div> }
+  </section>
+</main>
