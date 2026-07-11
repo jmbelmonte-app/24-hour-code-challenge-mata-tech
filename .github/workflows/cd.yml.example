@@ -1,0 +1,17 @@
+name: CD - Deployment Template
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: ${{ vars.DEPLOYMENT_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deployment placeholder
+        run: |
+          echo "Deployment target is not configured yet."
+          echo "Add hosting credentials and deployment steps before enabling this workflow."
